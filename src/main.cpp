@@ -1,13 +1,15 @@
 #include <Arduino.h>
 
 // Configurations
-int startPin = 2;
-int endPin = 13;
-int speed = 40;
-int tailLength = 4;
-int maxBrightness = 255;
+const int startPin = 2;
+const int endPin = 13;
+const int speed = 80;
+const int tailLength = 6;
+const int maxBrightness = 255;
 
-void draw(int pin, bool leftTail = true);
+// States
+int currentPin = startPin;
+bool goRight = true;
 
 void setup() {
   for(int thisPin = startPin; thisPin <= endPin; thisPin++) {
@@ -16,41 +18,46 @@ void setup() {
 }
 
 void loop() {
-  for (int i = startPin; i <= endPin; i++) {
-    draw(i, false);
-  }
-
-  for (int i = endPin; i >= startPin; i--) {
-    draw(i);
-  }
-}
-
-void draw(int pin, bool leftTail = true) {
   for (int length = tailLength; length > 0; length--) {
-    int brightness = length == tailLength ? maxBrightness : ((maxBrightness / 4) / tailLength) * length;
-    if (leftTail) {
-      int tailPinLocation = pin + (tailLength - length);
-      if (tailPinLocation <= endPin) {
-        analogWrite(tailPinLocation, brightness);
-      }
+    int tailBrightness = length == tailLength ? maxBrightness : ((maxBrightness / 20) / tailLength) * length;
+    int tailPinLocation = 0;
+
+    if (goRight) {
+      tailPinLocation = currentPin - (tailLength - length);
     } else {
-      int tailPinLocation = pin - (tailLength - length);
-      if (tailPinLocation >= startPin) {
-        analogWrite(tailPinLocation, brightness);
-      }
+      tailPinLocation = currentPin + (tailLength - length);
+    }
+   
+    if (tailPinLocation >= startPin && tailPinLocation <= endPin) {
+      analogWrite(tailPinLocation, tailBrightness);
     }
   }
 
-  if (leftTail) {
-    int clearUpBehind = pin - tailLength;
-    if (clearUpBehind <= endPin) {
-      analogWrite(pin + tailLength, 0);
-    }
-  } else {
-    int clearUpBehind = pin - tailLength;
-    if (clearUpBehind >= startPin) {
-      analogWrite(pin - tailLength, 0);
-    }
+  if (currentPin >= endPin) {
+    analogWrite(endPin, maxBrightness);
+  } else if (currentPin <= startPin) {
+    analogWrite(startPin, maxBrightness);
   }
+
+  int clearUpPin = 0;
+
+  if (goRight) {
+    clearUpPin = currentPin - tailLength;
+    currentPin++;
+  } else {
+    clearUpPin = currentPin + tailLength;
+    currentPin--;
+  }
+
+  if (clearUpPin >= startPin && clearUpPin <= endPin) {
+    analogWrite(clearUpPin, 0);
+  }
+
+  if (currentPin + tailLength <= startPin) {
+    goRight = true;
+  } else if (currentPin - tailLength >= endPin) {
+    goRight = false;
+  }
+
   delay(speed);
 }
