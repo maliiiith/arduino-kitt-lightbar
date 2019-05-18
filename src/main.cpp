@@ -3,40 +3,34 @@
 // Configurations
 const int startPin = 2;
 const int endPin = 13;
-const int speed = 80;
-const int tailLength = 6;
-const int maxBrightness = 255;
+const int speed = 500;
+const int tailLength = 4;
+const int maxBrightness = 100;
 
 // States
 int currentPin = startPin;
 bool goRight = true;
+int drawPath[tailLength];
+
+int *generatePath(int *path);
 
 void setup() {
+  Serial.begin(9600);
   for(int thisPin = startPin; thisPin <= endPin; thisPin++) {
     pinMode(thisPin, OUTPUT);
   }
 }
 
 void loop() {
-  for (int length = tailLength; length > 0; length--) {
-    int tailBrightness = length == tailLength ? maxBrightness : ((maxBrightness / 20) / tailLength) * length;
-    int tailPinLocation = 0;
+  generatePath(drawPath);
+  for (int pin = 1; pin <= tailLength; pin++) {
+    int tailBrightness = pin == tailLength ? maxBrightness : ((maxBrightness / 20) / tailLength) * pin;
+    int tailPinLocation = drawPath[pin - 1];
+    Serial.println(tailPinLocation);
 
-    if (goRight) {
-      tailPinLocation = currentPin - (tailLength - length);
-    } else {
-      tailPinLocation = currentPin + (tailLength - length);
-    }
-   
     if (tailPinLocation >= startPin && tailPinLocation <= endPin) {
       analogWrite(tailPinLocation, tailBrightness);
     }
-  }
-
-  if (currentPin >= endPin) {
-    analogWrite(endPin, maxBrightness);
-  } else if (currentPin <= startPin) {
-    analogWrite(startPin, maxBrightness);
   }
 
   int clearUpPin = 0;
@@ -53,11 +47,28 @@ void loop() {
     analogWrite(clearUpPin, 0);
   }
 
-  if (currentPin + tailLength <= startPin) {
-    goRight = true;
-  } else if (currentPin - tailLength >= endPin) {
-    goRight = false;
+  delay(speed);
+}
+
+int *generatePath(int *path) {
+  bool travelRight = path[0] < endPin;
+
+  for (int i = 0; i < tailLength; i++) {
+    int currentVal = path[i];
+    if (path[i] == endPin) {
+      travelRight = false;
+    } else if (path[i] == startPin) {
+      travelRight = true;
+    }
+
+    if (travelRight) {
+      currentVal++;
+    } else {
+      currentVal--;
+    }
+
+    path[i] = currentVal;
   }
 
-  delay(speed);
+  return path;
 }
